@@ -35,14 +35,14 @@ type LayerService interface {
 	PublishGeoTiffLayer(workspaceName string, coveragestoreName string, publishName string, fileName string) (published bool, err error)
 }
 
-//Resource geoserver resource
+// Resource geoserver resource
 type Resource struct {
 	Class string `json:"@class,omitempty"`
 	Name  string `json:"name,omitempty"`
 	Href  string `json:"href,omitempty"`
 }
 
-//Attribution of resource
+// Attribution of resource
 type Attribution struct {
 	Title      string `json:"title,omitempty"`
 	Href       string `json:"href,omitempty"`
@@ -52,7 +52,7 @@ type Attribution struct {
 	LogoHeight int    `json:"logoHeight,omitempty"`
 }
 
-//Layer geoserver layers
+// Layer geoserver layers
 type Layer struct {
 	Name         string    `json:"name,omitempty"`
 	Path         string    `json:"path,omitempty"`
@@ -68,13 +68,18 @@ type Layer struct {
 	Attribution *Attribution `json:"attribution,omitempty"`
 }
 
-//LayerRequestBody api json
+// LayerRequestBody api json
 type LayerRequestBody struct {
 	Layer Layer `json:"layer,omitempty"`
 }
 
-//PublishPostgisLayerRequest is the api body
+// PublishPostgisLayerRequest is the api body
 type PublishPostgisLayerRequest struct {
+	FeatureType *FeatureType `json:"featureType,omitempty"`
+}
+
+// PublishSQLViewLayerRequest is the api body
+type PublishSQLViewLayerRequest struct {
 	FeatureType *FeatureType `json:"featureType,omitempty"`
 }
 
@@ -122,8 +127,8 @@ func (g *GeoServer) UploadShapeFile(fileURI string, workspaceName string, datast
 
 }
 
-//GetLayers  get all layers from workspace in geoserver else return error,
-//if workspace is "" the it will return all public layers in geoserver
+// GetLayers  get all layers from workspace in geoserver else return error,
+// if workspace is "" the it will return all public layers in geoserver
 func (g *GeoServer) GetLayers(workspaceName string) (layers []*Resource, err error) {
 	if workspaceName != "" {
 		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
@@ -152,8 +157,8 @@ func (g *GeoServer) GetLayers(workspaceName string) (layers []*Resource, err err
 	return
 }
 
-//GetLayer get specific Layer in a workspace from geoserver else return error,
-//if workspace is "" the it will return geoserver public layer with ${layerName}
+// GetLayer get specific Layer in a workspace from geoserver else return error,
+// if workspace is "" the it will return geoserver public layer with ${layerName}
 func (g *GeoServer) GetLayer(workspaceName string, layerName string) (layer *Layer, err error) {
 	if workspaceName != "" {
 		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
@@ -180,8 +185,8 @@ func (g *GeoServer) GetLayer(workspaceName string, layerName string) (layer *Lay
 	return
 }
 
-//UpdateLayer partial update geoserver layer else return error,
-//if workspace is "" the it will update  public layer with name ${layerName} in geoserver
+// UpdateLayer partial update geoserver layer else return error,
+// if workspace is "" the it will update  public layer with name ${layerName} in geoserver
 func (g *GeoServer) UpdateLayer(workspaceName string, layerName string, layer Layer) (modified bool, err error) {
 	if workspaceName != "" {
 		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
@@ -209,7 +214,7 @@ func (g *GeoServer) UpdateLayer(workspaceName string, layerName string, layer La
 	return
 }
 
-//PublishPostgisLayer publish postgis table to geoserver
+// PublishPostgisLayer publish postgis table to geoserver
 func (g *GeoServer) PublishPostgisLayer(workspaceName string, datastoreName string, publishName string, tableName string) (published bool, err error) {
 	if workspaceName != "" {
 		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
@@ -239,8 +244,54 @@ func (g *GeoServer) PublishPostgisLayer(workspaceName string, datastoreName stri
 	return
 }
 
-//DeleteLayer delete geoserver layer and its reources else return error,
-//if workspace is "" will delete public layer with name ${layerName} if exists
+// PublishSQLViewLayer publishes an SQL view as a layer in GeoServer
+func (g *GeoServer) PublishSQLViewLayer(workspaceName, datastoreName, publishName string, sqlView *SQLView) (published bool, err error) {
+	if workspaceName != "" {
+		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
+	}
+	targetURL := g.ParseURL("rest", workspaceName, "datastores", datastoreName, "featuretypes")
+
+	metadata := &Metadata{
+		Entry: []*Entry{{
+			Key:   "JDBC_VIRTUAL_TABLE",
+			Value: sqlView,
+		}},
+	}
+
+	data := PublishSQLViewLayerRequest{
+		FeatureType: &FeatureType{
+			Name:       publishName,
+			NativeName: publishName,
+			Title:      publishName,
+			Srs:        fmt.Sprintf("EPSG:%d", sqlView.Geometry.SRID),
+			Metadata:   metadata,
+			Keywords:   &Keywords{String: []string{"sqlView", "geoserver"}},
+		},
+	}
+	serializedLayer, _ := g.SerializeStruct(data)
+	g.logger.Infof("Serialized layer: %s", serializedLayer)
+
+	httpRequest := HTTPRequest{
+		Method:   postMethod,
+		Accept:   jsonType,
+		Data:     bytes.NewBuffer(serializedLayer),
+		DataType: jsonType,
+		URL:      targetURL,
+		Query:    nil,
+	}
+	response, responseCode := g.DoRequest(httpRequest)
+	if responseCode != statusCreated {
+		g.logger.Error(response)
+		published = false
+		err = g.GetError(responseCode, response)
+		return
+	}
+	published = true
+	return
+}
+
+// DeleteLayer delete geoserver layer and its reources else return error,
+// if workspace is "" will delete public layer with name ${layerName} if exists
 func (g *GeoServer) DeleteLayer(workspaceName string, layerName string, recurse bool) (deleted bool, err error) {
 	if workspaceName != "" {
 		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)

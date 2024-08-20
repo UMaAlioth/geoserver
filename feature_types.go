@@ -6,13 +6,13 @@ import (
 	"strconv"
 )
 
-//CRSType geoserver crs response
+// CRSType geoserver crs response
 type CRSType struct {
 	Class string `json:"@class,omitempty"`
 	Value string `json:"$,omitempty"`
 }
 
-//UnmarshalJSON custom deserialization to handle published layers of group
+// UnmarshalJSON custom deserialization to handle published layers of group
 func (u *CRSType) UnmarshalJSON(data []byte) error {
 	var raw interface{}
 	err := json.Unmarshal(data, &raw)
@@ -28,7 +28,7 @@ func (u *CRSType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-//MarshalJSON custom crs serialization
+// MarshalJSON custom crs serialization
 func (u *CRSType) MarshalJSON() ([]byte, error) {
 	if IsEmpty(u) {
 		x := ""
@@ -55,8 +55,8 @@ type FeatureTypeService interface {
 
 // Entry is geoserver Entry
 type Entry struct {
-	Key   string `json:"@key,omitempty"`
-	Value string `json:"$,omitempty"`
+	Key   string      `json:"@key,omitempty"`
+	Value interface{} `json:"virtualTable,omitempty"`
 }
 
 // BoundingBox is geoserver Bounding Box for FeatureType
@@ -67,17 +67,17 @@ type BoundingBox struct {
 	Maxy float64 `json:"maxy,omitempty"`
 }
 
-//Metadata is the geoserver Metadata
+// Metadata is the geoserver Metadata
 type Metadata struct {
 	Entry []*Entry `json:"entry,omitempty"`
 }
 
-//Keywords is the geoserver Keywords
+// Keywords is the geoserver Keywords
 type Keywords struct {
 	String []string `json:"string,omitempty"`
 }
 
-//ResponseSRS is the geoserver ResponseSRS
+// ResponseSRS is the geoserver ResponseSRS
 type ResponseSRS struct {
 	String []int `json:"string,omitempty"`
 }
@@ -101,17 +101,17 @@ type MetadataLink struct {
 	Content      string `json:"content,omitempty"`
 }
 
-//MetadataLinks is the geoserver metadata links
+// MetadataLinks is the geoserver metadata links
 type MetadataLinks struct {
 	MetadataLink []*MetadataLink `json:"metadataLink,omitempty"`
 }
 
-//DataLinks is the geoserver FeatureType Datalinks
+// DataLinks is the geoserver FeatureType Datalinks
 type DataLinks struct {
 	DataLink []*MetadataLink `json:"org.geoserver.catalog.impl.DataLinkInfoImpl,omitempty"`
 }
 
-//Attributes is the geoserver feature type attributes
+// Attributes is the geoserver feature type attributes
 type Attributes struct {
 	Attribute []*Attribute `json:"attribute,omitempty"`
 }
@@ -124,6 +124,20 @@ type Attribute struct {
 	Nillable  bool   `json:"nillable,omitempty"`
 	Binding   string `json:"binding,omitempty"`
 	Length    int16  `json:"length,omitempty"`
+}
+
+type SQLView struct {
+	Name      string    `json:"name"`
+	SQL       string    `json:"sql"`
+	KeyColumn string    `json:"keyColumn,omitempty"`
+	Geometry  *Geometry `json:"geometry,omitempty"`
+	EscapeSql bool      `json:"escapeSql,omitempty"`
+}
+
+type Geometry struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	SRID int    `json:"srid"`
 }
 
 // FeatureType is geoserver FeatureType
@@ -160,12 +174,12 @@ type FeatureTypes struct {
 	FeatureType []*Resource `json:"featureType,omitempty"`
 }
 
-//FeatureTypesResponseBody is the api body
+// FeatureTypesResponseBody is the api body
 type FeatureTypesResponseBody struct {
 	FeatureTypes *FeatureTypes `json:"featureTypes,omitempty"`
 }
 
-//FeatureTypesRequestBody is the api body
+// FeatureTypesRequestBody is the api body
 type FeatureTypesRequestBody struct {
 	FeatureType *FeatureType `json:"featureTypes,omitempty"`
 }
