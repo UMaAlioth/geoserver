@@ -265,11 +265,10 @@ func (g *GeoServer) PublishSQLViewLayer(workspaceName, datastoreName, publishNam
 			Title:      publishName,
 			Srs:        fmt.Sprintf("EPSG:%d", sqlView.Geometry.SRID),
 			Metadata:   metadata,
-			Keywords:   &Keywords{String: []string{"sqlView", "geoserver"}},
 		},
 	}
 	serializedLayer, _ := g.SerializeStruct(data)
-	g.logger.Infof("Serialized layer: %s", serializedLayer)
+	//g.logger.Infof("Serialized layer: %s", serializedLayer)
 
 	httpRequest := HTTPRequest{
 		Method:   postMethod,
@@ -281,9 +280,9 @@ func (g *GeoServer) PublishSQLViewLayer(workspaceName, datastoreName, publishNam
 	}
 	response, responseCode := g.DoRequest(httpRequest)
 	if responseCode != statusCreated {
-		g.logger.Error(response)
 		published = false
 		err = g.GetError(responseCode, response)
+		g.logger.Error(err)
 		return
 	}
 	published = true
