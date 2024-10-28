@@ -289,6 +289,39 @@ func (g *GeoServer) PublishSQLViewLayer(workspaceName, datastoreName, publishNam
 	return
 }
 
+// UpdateLayerBoundsJSON updates the bounding box of a feature type in GeoServer using JSON
+func (g *GeoServer) UpdateLayerBoundsJSON(workspaceName, datastoreName, featureTypeName string) (updated bool, err error) {
+	if workspaceName != "" {
+		workspaceName = fmt.Sprintf("workspaces/%s/", workspaceName)
+	}
+	targetURL := g.ParseURL("rest", workspaceName, "datastores", datastoreName, "featuretypes", featureTypeName)
+
+	// Create the JSON payload for the request
+	jsonPayload := fmt.Sprintf(`{
+		"featureType": {
+			"recalculate": "nativebbox,latlonbbox"
+		}
+	}`)
+
+	httpRequest := HTTPRequest{
+		Method:   putMethod,
+		Accept:   jsonType,
+		Data:     bytes.NewBufferString(jsonPayload),
+		DataType: jsonType,
+		URL:      targetURL,
+		Query:    nil,
+	}
+	response, responseCode := g.DoRequest(httpRequest)
+	if responseCode != statusOk {
+		updated = false
+		err = g.GetError(responseCode, response)
+		g.logger.Error(err)
+		return
+	}
+	updated = true
+	return
+}
+
 // DeleteLayer delete geoserver layer and its reources else return error,
 // if workspace is "" will delete public layer with name ${layerName} if exists
 func (g *GeoServer) DeleteLayer(workspaceName string, layerName string, recurse bool) (deleted bool, err error) {

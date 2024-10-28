@@ -1,11 +1,11 @@
 package geoserver
 
 import (
-	"github.com/hishamkaram/geoserver/wms"
+	"github.com/UMaAlioth/geoserver/wms"
 )
 
-//GetCapabilities Retrieves metadata about the service, including supported operations and parameters,
-//and a list of the available layers
+// GetCapabilities Retrieves metadata about the service, including supported operations and parameters,
+// and a list of the available layers
 func (g *GeoServer) GetCapabilities(workspaceName string) (cap *wms.Capabilities, err error) {
 	targetURL := g.ParseURL(workspaceName, "wms")
 	httpRequest := HTTPRequest{
